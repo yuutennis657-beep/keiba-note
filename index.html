@@ -96,6 +96,14 @@ td.r,th.r{text-align:right}
 .kb-preset button{text-align:left;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);cursor:pointer;min-height:44px}
 .kb-preset button b{display:block;font-size:15px}
 .kb-preset button span{font-size:14px;color:var(--sub)}
+.kb-ps{border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.kb-ps-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.kb-ps-head b{font-size:15px}
+.kb-ps-amt{font-size:18px;font-weight:700;font-variant-numeric:tabular-nums}
+.kb-ps ul{margin:0;padding-left:1.1em;font-size:14px}
+.kb-ps ul li{margin:2px 0}
+.kb-ps .kb-mini{width:100%;margin-top:auto}
+.kb-ps-all{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:8px 0}
 .kb-rec{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:10px}
 @media (max-width:420px){.kb-rec{grid-template-columns:minmax(0,1fr)}}
 .kb-rec>div{border:1px solid var(--line);border-radius:10px;padding:10px 12px;min-width:0}
@@ -185,6 +193,7 @@ td.r,th.r{text-align:right}
       <strong>Claudeの結論</strong>
       <div class="kb-marks" id="marks"></div>
       <p id="sohyo" style="margin:6px 0 0"></p>
+      <p id="skipNote" class="kb-warn" hidden></p>
     </div>
 
     <h2>全頭の点数と勝つ確率</h2>
@@ -205,8 +214,8 @@ td.r,th.r{text-align:right}
     <h2 style="margin-top:4px">おすすめの買い方（予算から自動で組む）</h2>
     <div class="kb-row" style="margin-bottom:8px">
       <label for="budget">予算</label>
-      <input id="budget" class="kb-yen" type="number" min="100" step="100" value="3000"><span>円</span>
-      <span class="kb-note">押すと下の買い目に入ります</span>
+      <input id="budget" class="kb-yen" type="number" min="100" step="100" value="1000"><span>円</span>
+      <span class="kb-note" id="budgetNote">レースの格で決まる初期値です。打ちかえると、その金額で組み直します</span>
     </div>
     <div class="kb-preset" id="presets"></div>
 
@@ -532,6 +541,9 @@ function renderYoso(){
   html += `<div class="kb-mark"><span class="kb-mk">△</span><div style="min-width:0"><b>${del.map(h=>h.n+" "+h.name).join("、")}</b><small>連下（ヒモ）</small></div></div>`;
   document.getElementById("marks").innerHTML = html;
   document.getElementById("sohyo").textContent = R.sohyo ? R.sohyo[baba] : autoSohyo();
+  const sk = skipInfo(), skEl = document.getElementById("skipNote");
+  skEl.hidden = !sk;
+  if (sk) skEl.textContent = `見送り推奨：妙味が薄いレースです。買うなら半額が目安です（◎のお得度 ${sk.value.toFixed(2)}・3着内 ${Math.round(sk.pl*100)}%）`;
 
   const rows = [...P.rank];
   let t = `<thead><tr><th>印</th><th>馬</th><th>騎手</th><th class="r">単勝オッズ</th><th class="r">人気</th><th>点数</th><th class="r">勝つ確率</th><th class="r">3着内</th><th>お得度</th></tr></thead><tbody>`;
@@ -644,25 +656,111 @@ function renderKaime(){
     const v = parseFloat(e.target.value); if (v>=1){ manual[e.target.dataset.key]=v; save("manual",manual); renderKaime(); renderCart(); } }));
   save("bet", bet);
 }
-function renderPresets(){
+/* ===== v2：グレード別の予算・見送り判定・複合プリセット ===== */
+// 1. レースの格から予算の初期値（GⅠ/GI/G1/Ｇ１ などの書き方のゆれに対応）
+function budgetForGrade(grade){
+  const g = String(grade||"").replace(/[０-９]/g, c=>String.fromCharCode(c.charCodeAt(0)-0xFEE0))
+    .replace(/Ｇ/g,"G").replace(/Ⅲ/g,"III").replace(/Ⅱ/g,"II").replace(/Ⅰ/g,"I").toUpperCase();
+  if (/G(III|3)(?![I0-9])/.test(g)) return 2000;
+  if (/G(II|2)(?![I0-9])/.test(g)) return 3000;
+  if (/G(I|1)(?![I0-9])/.test(g)) return 5000;
+  return 1000;
+}
+// 3. 見送り判定：◎の お得度 が1.15未満 か、◎の3着内確率が50%未満
+function skipInfo(){
+  const hon = H.find(h=>h.mark==="◎");
+  if (!hon) return null;
+  const pl = P.placeP[hon.n];
+  return (hon.value < 1.15 || pl < 0.5) ? {hon, value:hon.value, pl} : null;
+}
+const R100 = x => Math.floor(x/100)*100;
+let budgetEdited = false;   // 手で打ちかえたら、レースを切りかえるまでその値を使う
+function suggestBudget(){ const b = budgetForGrade(R.grade); return skipInfo() ? Math.max(100, R100(b*0.5)) : b; }
+function syncBudget(){
+  if (budgetEdited) return;
+  document.getElementById("budget").value = suggestBudget();
+  document.getElementById("budgetNote").textContent = skipInfo()
+    ? `見送り推奨のレースなので、初期値は半額（${yen(suggestBudget())}）にしています。打ちかえると、その金額で組み直します`
+    : "レースの格で決まる初期値です。打ちかえると、その金額で組み直します";
+}
+// combos を優先順に並べたまま、amount（100円単位）を配る。1点100円未満は作らない（入らない点は後ろから外す）
+function spread(type, combos, amount){
+  combos = combos.filter(c => c.every(x=>x!=null) && new Set(c).size===c.length);
+  const n = Math.min(combos.length, Math.floor(amount/100));
+  if (n <= 0) return [];
+  combos = combos.slice(0, n);
+  const base = R100(amount/n), extra = Math.round((amount - base*n)/100);
+  const groups = new Map();
+  combos.forEach((c,i)=>{ const u = base + (i < extra ? 100 : 0); if (!groups.has(u)) groups.set(u, []); groups.get(u).push(c); });
+  return [...groups.entries()].sort((a,b)=>b[0]-a[0]).map(([u,list])=>({type, mode:"list", list, axis:[], picks:[...new Set(list.flat())], unit:u}));
+}
+function setCost(bets){ return bets.reduce((a,b)=>{ const saved = bet; bet = b; const n = combos().length; bet = saved; return a + n*b.unit; }, 0); }
+function buildPresets(budget){
   const m = s => H.filter(h=>h.mark===s).map(h=>h.n);
   const hon = m("◎")[0], tai = m("○")[0], san = m("▲")[0], ana = m("☆")[0], del = m("△");
-  const budget = Math.max(100, +document.getElementById("budget").value || 3000);
-  const list = [
-    {t:"堅実：ワイド", d:"◎から○▲☆へワイド3点。3着までに2頭入ればOK", b:{type:"wide",mode:"nagashi",axis:[hon],picks:[hon,tai,san,ana]}},
-    {t:"バランス：3連複", d:"◎を軸に○▲☆△へ3連複。順番は問わない", b:{type:"sanpuku",mode:"nagashi",axis:[hon],picks:[hon,tai,san,ana,...del]}},
-    {t:"高配当：3連単", d:"◎を1着に固定して○▲☆へ。当たれば大きい", b:{type:"santan",mode:"nagashi",axis:[hon],picks:[hon,tai,san,ana]}},
-    {t:"穴の応援：☆の複勝", d:`☆${byN[ana]?byN[ana].name:""}が3着までに来れば当たり`, b:{type:"fuku",mode:"box",axis:[],picks:[ana]}}
+  // 配分：本線34%・夢20%・穴10% を100円単位で切り捨て、残り（端数・使い切れなかった分）は守りへ寄せる
+  const sHon = R100(budget*0.34), sYume = R100(budget*0.20), sAna = R100(budget*0.10);
+
+  // 本線：3連複 ◎軸流し。相手の頭数は予算で決める（5,000円→6頭／3,000円→5頭／2,000円→4頭／それ未満→3頭）
+  // 相手の優先順は ○→▲→☆→△。余りはワイド◎-☆を厚くする（目安は予算の4%まで、それをこえた分は3連複へ）
+  const pool = [tai, san, ana, ...del].filter(x=>x!=null && x!==hon);
+  let k = Math.min(pool.length, budget>=5000 ? 6 : budget>=3000 ? 5 : budget>=2000 ? 4 : 3);
+  while (k >= 2 && (k*(k-1)/2)*100 > sHon) k--;
+  let honsen = [];
+  if (k >= 2 && hon != null){
+    const pt = pool.slice(0,k), trio = [];
+    for (let i=0;i<k;i++) for (let j=i+1;j<k;j++) trio.push([hon, pt[i], pt[j]]);
+    const left = sHon - trio.length*100;
+    const wideAmt = (ana!=null && left >= 100) ? Math.min(left, Math.max(100, R100(budget*0.04))) : 0;
+    honsen = [...spread("sanpuku", trio, sHon - wideAmt), ...(wideAmt ? spread("wide", [[hon, ana]], wideAmt) : [])];
+  }
+
+  // 夢（予算の20%まで）：本夢＝3連単◎1着→○▲☆（6点）／大夢＝☆→◎→○・▲（2点）／代役＝○→◎→▲・☆（2点）
+  // 減らす順：本夢6点は最後まで残す。足りないときは、大夢・代役を各1点まで減らし、さらに足りなければ代役→大夢の順に外す。
+  //          それでも本夢6点に届かない小さな予算のときだけ、本夢を確率の低い順に外す。
+  const pS = c => probOf("santan", c, P.p, P.placeP);
+  const honYume = [[hon,tai,san],[hon,tai,ana],[hon,san,tai],[hon,san,ana],[hon,ana,tai],[hon,ana,san]]
+    .filter(c=>c.every(x=>x!=null) && new Set(c).size===3).sort((a,b)=>pS(b)-pS(a));
+  const big = [[ana,hon,tai],[ana,hon,san]], sub = [[tai,hon,san],[tai,hon,ana]];
+  const yumeOrder = [...honYume, big[0], sub[0], big[1], sub[1]];
+  const yume = spread("santan", yumeOrder, sYume);
+
+  // 穴：☆の複勝1点
+  const anaBets = ana!=null ? spread("fuku", [[ana]], sAna) : [];
+
+  // 守り（残り全部）：ワイドBOX ◎○▲（3点）＋ 複勝 ◎・○。まず各100円を優先順に、残りはワイド6割・複勝4割
+  const sMam = budget - setCost(honsen) - setCost(yume) - setCost(anaBets);
+  const wides = [[hon,tai],[hon,san],[tai,san]].filter(c=>c.every(x=>x!=null)), fukus = [[hon],[tai]].filter(c=>c[0]!=null);
+  const order = [wides[0], wides[1], fukus[0], wides[2], fukus[1]].filter(Boolean);
+  const n0 = Math.min(order.length, Math.floor(sMam/100));
+  const useW = wides.filter(c=>order.slice(0,n0).includes(c)), useF = fukus.filter(c=>order.slice(0,n0).includes(c));
+  const extra = sMam - n0*100;
+  const wExtra = useF.length ? R100(extra*0.6) : extra, fExtra = extra - wExtra;
+  const mamori = [...spread("wide", useW, useW.length*100 + (useW.length ? wExtra : 0)), ...spread("fuku", useF, useF.length*100 + (useF.length ? fExtra : 0))];
+
+  return [
+    {key:"mamori", name:"守り", title:"ワイドBOX ◎○▲＋複勝 ◎○", desc:"◎が3着を外しても、○と▲が来ればワイドが当たる形", bets:mamori},
+    {key:"honsen", name:"本線", title:`3連複 ◎軸→相手${k>=2?k:0}頭`+(honsen.some(b=>b.type==="wide")?"＋ワイド◎-☆":""), desc:"いちばん厚く狙う形。順番は問わない", bets:honsen},
+    {key:"yume", name:"夢", title:"3連単（本夢・大夢・代役）", desc:"◎1着の本夢に、☆や○が勝つ形も少しだけ", bets:yume},
+    {key:"ana", name:"穴", title:"☆の複勝", desc:`☆${byN[ana]?byN[ana].name:""}が3着までに来れば当たり`, bets:anaBets}
   ];
+}
+function renderPresets(){
+  syncBudget();
+  const budget = Math.max(100, R100(+document.getElementById("budget").value || 100));
+  const sets = buildPresets(budget);
+  const total = sets.reduce((a,p)=>a+setCost(p.bets), 0);
   const box = document.getElementById("presets");
-  box.innerHTML = list.map((p,i)=>{ const saved = bet; bet = {...p.b, unit:100}; const n = combos().length; bet = saved;
-    const unit = Math.max(100, Math.floor(budget/n/100)*100);
-    return `<button data-i="${i}"><b>${p.t}（${n}点×${unit.toLocaleString()}円）</b><span>${p.d}</span></button>`; }).join("");
-  box.querySelectorAll("button").forEach(b=>b.addEventListener("click", ()=>{
-    const p = list[+b.dataset.i]; bet = {...p.b, unit:100}; const n = combos().length;
-    bet.unit = Math.max(100, Math.floor(budget/n/100)*100); role="aite"; renderKaime();
-    document.getElementById("betSum").scrollIntoView({behavior:"smooth", block:"center"});
-  }));
+  const line = b => `<li>${betLabel(b)}　1点${yen(b.unit)}</li>`;
+  box.innerHTML = sets.map((p,i)=>`<div class="kb-ps"><div class="kb-ps-head"><b>${p.name}：${p.title}</b><span class="kb-ps-amt">${yen(setCost(p.bets))}</span></div>
+      <span class="kb-note">${p.desc}</span>
+      ${p.bets.length ? `<ul>${p.bets.map(line).join("")}</ul><button class="kb-mini" data-i="${i}">この組を買う予定に入れる</button>` : `<span class="kb-note">この予算では組めません</span>`}</div>`).join("");
+  let all = document.getElementById("presetAll");
+  if (!all){ all = document.createElement("div"); all.id = "presetAll"; all.className = "kb-ps-all"; box.after(all); }
+  all.innerHTML = `<button class="kb-btn" id="presetAllBtn">4つまとめて買う予定に入れる（合計 ${yen(total)}）</button>`;
+  const add = list => { list.forEach(b=>cart.push(JSON.parse(JSON.stringify(b)))); save("cart", cart); renderCart(); document.getElementById("cart").scrollIntoView({behavior:"smooth", block:"start"}); };
+  box.querySelectorAll("button[data-i]").forEach(b=>b.addEventListener("click", ()=>add(sets[+b.dataset.i].bets)));
+  document.getElementById("presetAllBtn").addEventListener("click", ()=>add(sets.flatMap(p=>p.bets)));
 }
 
 /* 券種ごとのおすすめ */
@@ -876,7 +974,7 @@ document.getElementById("pickChips").addEventListener("click", e=>{ const b = e.
   renderKaime(); });
 document.getElementById("unit").addEventListener("change", e=>{ bet.unit = Math.max(100, Math.round((+e.target.value||100)/100)*100); renderKaime(); });
 document.getElementById("clearPick").addEventListener("click", ()=>{ bet.picks=[]; bet.axis=[]; role="axis"; renderKaime(); });
-document.getElementById("budget").addEventListener("input", renderPresets);
+document.getElementById("budget").addEventListener("input", ()=>{ budgetEdited = true; renderPresets(); });
 document.getElementById("addCart").addEventListener("click", ()=>{ if (!combos().length) return; cart.push(JSON.parse(JSON.stringify(bet))); save("cart",cart); renderCart();
   document.getElementById("cart").scrollIntoView({behavior:"smooth", block:"start"}); });
 
