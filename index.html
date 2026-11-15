@@ -815,8 +815,8 @@ document.getElementById("raceTitle").textContent = R.name + (R.grade ? "（" + R
   window.addEventListener("hashchange", ()=>location.reload());
 })();
 document.getElementById("raceMeta").innerHTML = R.meta;
-document.getElementById("oddsTime").textContent = IS_MAIN ? `（いま入っているのは ${LIVE.time} の公式オッズ・馬場「${LIVE.baba}」。発走までClaudeが約15分ごとに新しい数字へ入れかえます）` : `（いま入っているのは ${LIVE.time} のオッズ・馬場「${LIVE.baba}」。このレースは自動では入れかわらないので、発走前にJRAのオッズを打ちこんでください）`;
-document.getElementById("liveBar").innerHTML = `<b>${IS_MAIN?"公式の数字":"取りこんだ数字"}</b>　${LIVE.time} 時点・馬場 ${LIVE.baba}${Object.keys(LIVE.weight||{}).length?"・馬体重 発表ずみ":""}　<span id="countdown"></span>` +
+document.getElementById("oddsTime").textContent = IS_MAIN ? `（いま入っているのは ${LIVE.time} の公式オッズ・馬場「${LIVE.baba}」。16時半ごろまで、Claudeが約15分ごとに新しい数字へ入れかえます）` : `（いま入っているのは ${LIVE.time} の公式オッズ・馬場「${LIVE.baba}」。16時半ごろまで、Claudeが約15分ごとに新しい数字へ入れかえます）`;
+document.getElementById("liveBar").innerHTML = `<b>公式の数字</b>　${LIVE.time} 時点・馬場 ${LIVE.baba}${Object.keys(LIVE.weight||{}).length?"・馬体重 発表ずみ":""}　<span id="countdown"></span>` +
   (LIVE.result ? `<br><b style="color:var(--red)">結果</b>　1着 ${LIVE.result[0]} ${byN[LIVE.result[0]].name}／2着 ${LIVE.result[1]} ${byN[LIVE.result[1]].name}／3着 ${LIVE.result[2]} ${byN[LIVE.result[2]].name}` : "");
 function tick(){ const ms = new Date(R.start) - new Date(); const el = document.getElementById("countdown"); if (!el) return;
   if (ms <= 0){ el.textContent = "発走しました"; return; }
