@@ -1,0 +1,760 @@
+<!doctype html>
+<html lang="ja">
+<title>僕の競馬ノート</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=Dela+Gothic+One&display=swap">
+<style>
+/* 馬柱（競馬新聞）のように「列で読む」白地の道具。芝の緑を1色だけ使う */
+:root{
+  --bg:#ffffff; --fg:#1d2420; --sub:#56605a; --line:#dfe5e1; --soft:#f3f6f4;
+  --turf:#17703f; --turf-soft:#e6f2ea; --gold:#a8670a; --gold-soft:#fbf1df;
+  --red:#b3261e; --red-soft:#fbe9e7;
+  --font:"BIZ UDPGothic","Hiragino Sans","Hiragino Kaku Gothic ProN",sans-serif;
+  --disp:"Dela Gothic One","BIZ UDPGothic",sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#121614; --fg:#e8ede9; --sub:#a9b3ad; --line:#2d3531; --soft:#1b211e;
+  --turf:#5fcf8d; --turf-soft:#173323; --gold:#f0b552; --gold-soft:#3a2c12;
+  --red:#ff8a80; --red-soft:#3d1c1a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#121614; --fg:#e8ede9; --sub:#a9b3ad; --line:#2d3531; --soft:#1b211e;
+  --turf:#5fcf8d; --turf-soft:#173323; --gold:#f0b552; --gold-soft:#3a2c12;
+  --red:#ff8a80; --red-soft:#3d1c1a; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);font-size:15px;line-height:1.6;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px 40px}
+.kb-wrap{max-width:980px;margin:0 auto}
+.kb-head{display:flex;flex-wrap:wrap;align-items:flex-end;gap:8px 16px;border-bottom:2px solid var(--fg);padding-bottom:8px}
+.kb-head h1{font-family:var(--disp);font-weight:400;font-size:26px;margin:0;line-height:1.2;letter-spacing:.02em}
+.kb-meta{color:var(--sub);font-size:14px}
+.kb-meta b{color:var(--fg)}
+select,input,button{font:inherit;color:inherit}
+.kb-tabs{display:flex;gap:4px;margin:12px 0;overflow-x:auto}
+.kb-tabs button{min-height:44px;padding:0 14px;border:1px solid var(--line);background:var(--bg);border-radius:8px;cursor:pointer;white-space:nowrap;font-size:15px}
+.kb-tabs button[aria-selected="true"]{background:var(--turf);border-color:var(--turf);color:#fff;font-weight:700}
+:root[data-theme="dark"] .kb-tabs button[aria-selected="true"]{color:#0c1a12}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .kb-tabs button[aria-selected="true"]{color:#0c1a12}}
+@media (max-width:560px){.kb-tabs{display:grid;grid-template-columns:1fr 1fr}}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+h2{font-size:18px;margin:20px 0 8px}
+h3{font-size:16px;margin:14px 0 6px}
+.kb-note{color:var(--sub);font-size:14px}
+.kb-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.kb-seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.kb-seg button{min-height:44px;min-width:56px;padding:0 12px;border:0;background:var(--bg);cursor:pointer;font-size:15px}
+.kb-seg button+button{border-left:1px solid var(--line)}
+.kb-seg button[aria-pressed="true"]{background:var(--turf-soft);color:var(--turf);font-weight:700}
+/* 結論 */
+.kb-verdict{border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-top:12px}
+.kb-marks{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin:8px 0}
+.kb-mark{display:flex;gap:8px;align-items:center;padding:8px;border-radius:8px;background:var(--soft);min-width:0}
+.kb-mk{font-size:22px;font-weight:700;width:28px;text-align:center;flex:none}
+.kb-mk.hon{color:var(--red)} .kb-mk.ana{color:var(--gold)}
+.kb-mark small{display:block;color:var(--sub);font-size:14px}
+/* 枠色（JRAの枠の色） */
+.kb-num{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:6px;font-weight:700;font-variant-numeric:tabular-nums;flex:none;border:1px solid #9aa39e}
+.w1{background:#fff;color:#111}.w2{background:#222;color:#fff}.w3{background:#d8332a;color:#fff}.w4{background:#2a5cc8;color:#fff}
+.w5{background:#f2d230;color:#111}.w6{background:#1f8a4c;color:#fff}.w7{background:#f08a24;color:#111}.w8{background:#f49ac1;color:#111}
+/* 表 */
+.kb-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+th,td{padding:8px 8px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap;font-size:15px}
+th{font-size:14px;color:var(--sub);font-weight:700;background:var(--soft)}
+tr:last-child td{border-bottom:0}
+td.r,th.r{text-align:right}
+.kb-odds{width:76px;min-height:40px;padding:4px 6px;border:1px solid var(--line);border-radius:6px;text-align:right;background:var(--bg)}
+.kb-bar{display:inline-block;width:70px;height:10px;background:var(--soft);border-radius:5px;vertical-align:middle;margin-right:6px;overflow:hidden;border:1px solid var(--line)}
+.kb-bar i{display:block;height:100%;background:var(--turf)}
+.kb-chip{display:inline-block;padding:2px 8px;border-radius:999px;font-size:14px;font-weight:700}
+.kb-chip.good{background:var(--turf-soft);color:var(--turf)}
+.kb-chip.mid{background:var(--soft);color:var(--sub)}
+.kb-chip.bad{background:var(--red-soft);color:var(--red)}
+.kb-chip.ana{background:var(--gold-soft);color:var(--gold)}
+/* 馬カード */
+.kb-horse{border:1px solid var(--line);border-radius:10px;margin-bottom:8px}
+.kb-horse>button{display:flex;gap:10px;align-items:center;width:100%;min-height:56px;padding:8px 12px;background:none;border:0;cursor:pointer;text-align:left}
+.kb-horse>button .nm{font-weight:700;font-size:16px;flex:1;min-width:0}
+.kb-horse>button .nm small{display:block;font-weight:400;color:var(--sub);font-size:14px}
+.kb-detail{padding:0 12px 12px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:640px){.kb-detail{grid-template-columns:1fr}}
+.kb-detail>div{min-width:0}
+.kb-fac{display:grid;grid-template-columns:7.5em 1fr 2.5em;gap:6px;align-items:center;font-size:14px}
+.kb-fac .kb-bar{width:100%}
+.kb-list{margin:4px 0;padding-left:1.2em}
+.kb-list li{margin:2px 0}
+.kb-good::marker{content:"＋ ";color:var(--turf);font-weight:700}
+.kb-bad::marker{content:"－ ";color:var(--red);font-weight:700}
+/* 買い目 */
+.kb-panel{border:1px solid var(--line);border-radius:10px;padding:12px}
+.kb-grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
+@media (max-width:760px){.kb-grid2{grid-template-columns:1fr}}
+.kb-chips{display:flex;flex-wrap:wrap;gap:6px}
+.kb-pick{display:flex;align-items:center;gap:6px;min-height:44px;padding:4px 10px 4px 6px;border:1px solid var(--line);border-radius:8px;background:var(--bg);cursor:pointer;font-size:14px}
+.kb-pick[aria-pressed="true"]{border-color:var(--turf);background:var(--turf-soft);font-weight:700}
+.kb-pick.axis[aria-pressed="true"]{border-color:var(--red);background:var(--red-soft)}
+.kb-pick .tag{font-size:14px;font-weight:700}
+.kb-btn{min-height:44px;padding:0 16px;border-radius:8px;border:1px solid var(--turf);background:var(--turf);color:#fff;font-weight:700;cursor:pointer}
+:root[data-theme="dark"] .kb-btn{color:#0c1a12}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .kb-btn{color:#0c1a12}}
+.kb-btn.ghost{background:var(--bg);color:var(--turf)}
+.kb-yen{width:110px;min-height:44px;padding:4px 8px;border:1px solid var(--line);border-radius:8px;text-align:right;background:var(--bg)}
+.kb-sum{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin:10px 0}
+.kb-sum div{background:var(--soft);border-radius:8px;padding:8px 10px}
+.kb-sum small{display:block;color:var(--sub);font-size:14px}
+.kb-sum b{font-size:20px;font-variant-numeric:tabular-nums}
+.kb-preset{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px}
+.kb-preset button{text-align:left;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);cursor:pointer;min-height:44px}
+.kb-preset button b{display:block;font-size:15px}
+.kb-preset button span{font-size:14px;color:var(--sub)}
+.kb-rec{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:10px}
+@media (max-width:420px){.kb-rec{grid-template-columns:minmax(0,1fr)}}
+.kb-rec>div{border:1px solid var(--line);border-radius:10px;padding:10px 12px;min-width:0}
+.kb-rec h3{margin:0;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.kb-rec h3 small{font-weight:400;color:var(--sub);font-size:14px}
+.kb-recrow{display:grid;grid-template-columns:3.2em minmax(0,1fr) auto;gap:4px 8px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
+.kb-recrow:first-of-type{border-top:0}
+.kb-recrow .cb{display:flex;flex-wrap:wrap;gap:4px;align-items:center;font-weight:700}
+.kb-recrow .cb .kb-num{width:28px;height:28px}
+.kb-recrow .info{grid-column:2/4;font-size:14px;color:var(--sub);font-variant-numeric:tabular-nums}
+.kb-recrow .info b{color:var(--fg);font-size:16px}
+.kb-rtag{font-size:14px;font-weight:700;padding:2px 0;border-radius:6px;text-align:center}
+.kb-rtag.hon{background:var(--turf-soft);color:var(--turf)}
+.kb-rtag.otoku{background:var(--soft);color:var(--fg)}
+.kb-rtag.yume{background:var(--gold-soft);color:var(--gold)}
+.kb-mini{min-height:44px;padding:0 12px;border-radius:8px;border:1px solid var(--line);background:var(--bg);cursor:pointer;font-size:14px}
+.kb-live{margin:10px 0 0;padding:8px 12px;border-radius:8px;background:var(--turf-soft);font-size:14px}
+.kb-live b{color:var(--turf)}
+.kb-hit{color:var(--turf);font-weight:700}
+.kb-warn{background:var(--gold-soft);border-radius:8px;padding:8px 12px;font-size:14px;margin-top:12px}
+.kb-facts li{margin:4px 0}
+</style>
+
+<div class="kb-wrap">
+  <header class="kb-head">
+    <h1 id="raceTitle">エリザベス女王杯</h1>
+    <div class="kb-meta" id="raceMeta"></div>
+    <div style="margin-left:auto" id="raceSelWrap"></div>
+  </header>
+
+  <p class="kb-live" id="liveBar"></p>
+  <nav class="kb-tabs" role="tablist" id="tabs">
+    <button role="tab" data-tab="yoso" aria-selected="true">予想</button>
+    <button role="tab" data-tab="uma" aria-selected="false">馬を1頭ずつ見る</button>
+    <button role="tab" data-tab="kaime" aria-selected="false">買い目と払い戻し</button>
+    <button role="tab" data-tab="keiko" aria-selected="false">傾向・馬場</button>
+  </nav>
+
+  <!-- 予想 -->
+  <section id="tab-yoso">
+    <div class="kb-row">
+      <span>今日の馬場：</span>
+      <div class="kb-seg" id="babaSeg">
+        <button data-baba="ryo">良</button><button data-baba="yayaomo">稍重</button><button data-baba="omo">重・不良</button>
+      </div>
+      <span class="kb-note">雨で馬場が重くなるほど「雨の馬場」の点を重く見ます</span>
+    </div>
+    <div class="kb-verdict">
+      <strong>Claudeの結論</strong>
+      <div class="kb-marks" id="marks"></div>
+      <p id="sohyo" style="margin:6px 0 0"></p>
+    </div>
+
+    <h2>全頭の点数と勝つ確率</h2>
+    <p class="kb-note" style="margin-top:0">オッズは発走前に変わります。新しいオッズを打ちこむと、確率・お得度・払い戻しがすぐ計算し直されます。<span id="oddsTime"></span>
+      <button class="kb-btn ghost" id="resetOdds" style="min-height:36px;padding:0 10px;margin-left:4px">最初のオッズに戻す</button></p>
+    <div class="kb-scroll"><table id="rankTable"></table></div>
+    <p class="kb-note">「点数」は 実力・コース・雨の馬場・血統・枠・騎手・過去の傾向 の7つを合わせたもの。「勝つ確率」は点数とオッズ（みんなの評価）を半分ずつ混ぜた目安。「お得度」は Claude の評価がオッズより高い馬ほど「お得」です。</p>
+  </section>
+
+  <!-- 馬 -->
+  <section id="tab-uma" hidden>
+    <p class="kb-note">馬名を押すと、7つの点数・血統・近走・良いところ・心配なところが開きます。</p>
+    <div id="horseList"></div>
+  </section>
+
+  <!-- 買い目 -->
+  <section id="tab-kaime" hidden>
+    <h2 style="margin-top:4px">おすすめの買い方（予算から自動で組む）</h2>
+    <div class="kb-row" style="margin-bottom:8px">
+      <label for="budget">予算</label>
+      <input id="budget" class="kb-yen" type="number" min="100" step="100" value="3000"><span>円</span>
+      <span class="kb-note">押すと下の買い目に入ります</span>
+    </div>
+    <div class="kb-preset" id="presets"></div>
+
+    <h2>券種ごとのおすすめ</h2>
+    <p class="kb-note" style="margin-top:0">印のついた7頭の中から、券種ごとに3つ選びました。<b>本線</b>＝いちばん当たりやすい、<b>お得</b>＝当たりやすさと配当のバランスがいちばん良い、<b>一発</b>＝そこそこ現実的な中でいちばん高配当。金額は100円買ったときです。</p>
+    <div class="kb-rec" id="recs"></div>
+
+    <div class="kb-grid2" style="margin-top:16px">
+      <div class="kb-panel">
+        <h3 style="margin-top:0">① 券種</h3>
+        <div class="kb-seg" id="typeSeg" style="flex-wrap:wrap"></div>
+        <p class="kb-note" id="typeHelp" style="margin:6px 0"></p>
+        <h3>② 買い方</h3>
+        <div class="kb-seg" id="modeSeg">
+          <button data-mode="box">ボックス</button><button data-mode="nagashi">軸から流す</button>
+        </div>
+        <div id="pickRole" class="kb-row" style="margin-top:8px"></div>
+        <h3>③ 馬を選ぶ</h3>
+        <div class="kb-chips" id="pickChips"></div>
+        <h3>④ 1点の金額</h3>
+        <div class="kb-row"><input id="unit" class="kb-yen" type="number" min="100" step="100" value="100"><span>円</span>
+          <button class="kb-btn ghost" id="clearPick">選び直す</button></div>
+      </div>
+      <div class="kb-panel">
+        <h3 style="margin-top:0">払い戻しの見こみ</h3>
+        <div class="kb-sum" id="betSum"></div>
+        <div id="betWarn"></div>
+        <div class="kb-scroll" style="max-height:340px;overflow-y:auto"><table id="betTable"></table></div>
+        <div class="kb-row" style="margin-top:10px">
+          <button class="kb-btn" id="addCart">この買い目を「買う予定」に入れる</button>
+        </div>
+        <p class="kb-note">オッズの欄は、Claudeが単勝オッズから計算した<b>目安</b>です。JRAのアプリで本当のオッズを見たら、その数字に打ちかえると正確になります。</p>
+      </div>
+    </div>
+
+    <h2>買う予定の馬券（合計）</h2>
+    <div id="cart"></div>
+    <h3>もしこの順番で来たら？</h3>
+    <div class="kb-row" id="simRow"></div>
+    <div id="simOut" style="margin-top:8px"></div>
+    <h2>今日の収支</h2>
+    <div id="hist"></div>
+    <p class="kb-warn">これは目安の計算です。オッズは発走直前まで動くので、買う前にJRAの最新オッズで確かめてください。馬券は20歳から、無理のない金額で。</p>
+  </section>
+
+  <!-- 傾向 -->
+  <section id="tab-keiko" hidden>
+    <div id="trendBox"></div>
+  </section>
+
+  <p class="kb-note" style="margin-top:28px" id="sources"></p>
+</div>
+
+<script>
+/* 公式（スポーツナビ）から Claude が取ってきた最新の数字。この1行だけを書きかえて出し直す */
+const LIVE = {"time":"11/15 10:03","baba":"稍重","odds":{"1":33.0,"2":75.9,"3":71.8,"4":78.6,"5":77.5,"6":13.7,"7":4.6,"8":76.0,"9":8.4,"10":23.8,"11":4.8,"12":17.7,"13":10.3,"14":34.9,"15":9.4,"16":7.4,"17":101.4,"18":15.1},"weight":{},"result":null};
+/* =========================================================
+   レースのデータ。ほかのレースは RACES に同じ形で1つ足すだけ。
+   f = 7つの点（0〜5）: jitsu 実力・実績 / course コース・距離 / baba 雨の馬場
+       blood 血統 / waku 枠 / jockey 騎手 / trend 過去の傾向
+   ========================================================= */
+const RACES = [{
+  id:"2026-erizabeth",
+  name:"エリザベス女王杯",
+  grade:"GⅠ",
+  meta:"2026年11月15日（日）京都11R・15:40発走・芝2200m（右・外回り）・3歳以上牝馬・18頭",
+  defaultBaba:"yayaomo",
+  start:"2026-11-15T15:40:00+09:00",
+  sohyo:{
+    ryo:"良馬場なら、地力どおりカムニャックが中心。メンバー最高の評価（レーティング114）で、前走のアイルランドトロフィーは過去10年でいちばん勝ち馬が出ている前走です。相手はジョスラン・クイーンズウォーク・ジュウリョクピエロ。穴は2200mで2連勝中のシャドウメテオ。",
+    yayaomo:"朝から雨で馬場は稍重。カムニャックは道悪の経験がないものの、力が一枚上で中心は動かしにくい。雨で上がるのは、重馬場で勝ったことのあるクイーンズウォーク・シャドウメテオ・ヴーレヴー・コガネノソラ。1番人気のジュウリョクピエロはオークス馬の力は認めつつ、半年ぶりで雨も未経験なので、点数ではカムニャックとはっきり差をつけています。大外8枠のアクアヴァーナル・コガネノソラは、京都のこのレースで8枠が苦戦（複勝率5.6%）しているのが心配。",
+    omo:"重・不良まで悪くなったら、道悪で3勝しているコガネノソラ、重で勝っているシャドウメテオ・ヴーレヴー・クイーンズウォークを大きく上げます。良馬場向きのキレ味型（ジュウリョクピエロなど）は割り引き。"
+  },
+  horses:[
+    {n:1,w:1,name:"ラヴァンダ",sa:"牝5",kg:56,jockey:"岩田望来",trainer:"中村直也",sire:"シルバーステート",dam:"ゴッドパイレーツ",bms:"ベーカバド",odds:32.8,
+     recent:"アイルランドT（2人気）／中京記念（2人気）／ヴィクトリアM（8人気）",
+     f:{jitsu:2.5,course:3,baba:2.5,blood:3,waku:5,jockey:3.5,trend:2},
+     good:["1枠1番。京都のこのレースで「1番」は3年連続で3着以内に来ている当たり枠","父シルバーステートはサンデー系（このコースで来やすい）"],
+     bad:["過去に1番で来た馬はみんな4番人気以内。今回は11番人気前後","重賞では人気より下の着順が続く"]},
+    {n:2,w:1,name:"レイクラシック",sa:"牝3",kg:54,jockey:"西村淳也",trainer:"新谷功一",sire:"キタサンブラック",dam:"メジロジェニファー",bms:"ホワイトマズル",odds:76.1,
+     recent:"ローズS（7人気）／1勝クラス（1人気）／オークス（12人気）",
+     f:{jitsu:1.5,course:3,baba:3,blood:3.5,waku:4,jockey:3,trend:2.5},
+     good:["内枠で3歳の54kg","父キタサンブラックはスタミナ型で雨もこなせる"],
+     bad:["まだ1勝クラスを勝ったばかりで、GⅠでは格が足りない"]},
+    {n:3,w:2,name:"ステレンボッシュ",sa:"牝5",kg:56,jockey:"池添謙一",trainer:"宮田敬介",sire:"エピファネイア",dam:"ブルークランズ",bms:"ルーラーシップ",odds:71.5,
+     recent:"新潟記念（5人気）／安田記念（5人気）／エプソムC（5人気）",
+     f:{jitsu:2.5,course:3,baba:1,blood:2,waku:3.5,jockey:3,trend:1.5},
+     good:["2024年の桜花賞馬。GⅠを勝った力はある","内めの2枠"],
+     bad:["雨の馬場は0-0-0-3（いちばん良くて7着）","最近は人気どおりに走れていない"]},
+    {n:4,w:2,name:"エストゥペンダ",sa:"牝4",kg:56,jockey:"荻野極",trainer:"高柳瑞樹",sire:"サートゥルナーリア",dam:"エストレチャダ",bms:"Offlee Wild",odds:78.3,
+     recent:"関越S（1人気）／府中牝馬S（4人気）／弥彦S（1人気）",
+     f:{jitsu:1.5,course:2.5,baba:2.5,blood:3,waku:3.5,jockey:2.5,trend:2},
+     good:["母の父がアメリカの血統（このコースで3着内率33%）"],
+     bad:["重賞の実績がほとんどない","前走はオープン特別"]},
+    {n:5,w:3,name:"ニシノティアモ",sa:"牝5",kg:56,jockey:"津村明秀",trainer:"上原佑紀",sire:"ドゥラメンテ",dam:"ニシノアモーレ",bms:"コンデュイット",odds:78.0,
+     recent:"アイルランドT（7人気）／府中牝馬S（2人気）／ヴィクトリアM（4人気）",
+     f:{jitsu:2,course:2.5,baba:2.5,blood:2,waku:3,jockey:2.5,trend:1.5},
+     good:["春はヴィクトリアMで4番人気に推された"],
+     bad:["5歳は過去10年で複勝率10%と苦戦","前走アイルランドTで見せ場が少なかった"]},
+    {n:6,w:3,name:"ヴーレヴー",sa:"牝4",kg:56,jockey:"吉田隼人",trainer:"武幸四郎",sire:"サトノクラウン",dam:"アルギュロス",bms:"マンハッタンカフェ",odds:13.9,
+     recent:"オールカマー 3着（3人気）／クイーンS（4人気）／巴賞（8人気）",
+     f:{jitsu:3.5,course:3.5,baba:4.5,blood:2,waku:3,jockey:3,trend:4},
+     good:["重馬場の巴賞を勝っていて雨は得意","前走オールカマー3着と牡馬相手でも走れた","調教の評価で「筆頭」と書いた予想家がいる","4歳・前走GⅡは傾向どおり"],
+     bad:["父サトノクラウンは、このコースで来やすい血統（サンデー系）から外れる","GⅠでの実績はまだない"]},
+    {n:7,w:4,name:"カムニャック",sa:"牝4",kg:56,jockey:"川田将雅",trainer:"友道康夫",sire:"ブラックタイド",dam:"ダンスアミーガ",bms:"サクラバクシンオー",odds:4.5,
+     recent:"アイルランドT 1着（1人気）／ヴィクトリアM 2着（2人気）／阪神牝馬S（4人気）",
+     f:{jitsu:5,course:4,baba:3,blood:3.5,waku:3.5,jockey:5,trend:5},
+     good:["レーティング114はメンバーでいちばん上","前走アイルランドTを快勝。この前走から過去10年で4勝2着6回と、いちばん来ているローテ","川田騎手で大舞台の安心感","4歳はこのレースでいちばん勝っている年齢（6勝）"],
+     bad:["雨の馬場（稍重〜不良）はまだ走ったことがない","2200mで折り合えるかは少し心配"]},
+    {n:8,w:4,name:"レーゼドラマ",sa:"牝4",kg:56,jockey:"松若風馬",trainer:"辻野泰之",sire:"キズナ",dam:"シアードラマ",bms:"Burning Roma",odds:75.8,
+     recent:"チャレンジC（12人気）／小倉記念（6人気）／福島牝馬S（6人気）",
+     f:{jitsu:1.5,course:2.5,baba:2.5,blood:4.5,waku:3.5,jockey:2,trend:2},
+     good:["父キズナ（サンデー系）×母の父アメリカ＝このコースで来やすい組み合わせ"],
+     bad:["重賞で人気が低く、力が足りていない"]},
+    {n:9,w:5,name:"クイーンズウォーク",sa:"牝5",kg:56,jockey:"C.デムーロ",trainer:"中内田充正",sire:"キズナ",dam:"ウェイヴェルアベニュー",bms:"Harlington",odds:8.4,
+     recent:"アイルランドT 8着（3人気）／ヴィクトリアM 3着（3人気）／金鯱賞 3着（1人気）",
+     f:{jitsu:4,course:3,baba:4,blood:4.5,waku:3,jockey:4.5,trend:2.5},
+     good:["2025年の重馬場の金鯱賞を勝っていて、雨はプラス","ヴィクトリアM3着とGⅠでも走れる","父キズナ×母の父アメリカは来やすい血統","C.デムーロ騎手はこのレース過去10年で2勝","「9番」は京都開催で穴をあけて2着が2回"],
+     bad:["前走8着と負けすぎ","2200mは少し長い心配"]},
+    {n:10,w:5,name:"セキトバイースト",sa:"牝5",kg:56,jockey:"浜中俊",trainer:"四位洋文",sire:"デクラレーションオブウォー",dam:"ベアフットレディ",bms:"Footstepsinthesand",odds:24.5,
+     recent:"アイルランドT（6人気）／府中牝馬S（5人気）／新潟大賞典（5人気）",
+     f:{jitsu:2.5,course:2.5,baba:3,blood:2,waku:2.5,jockey:3,trend:2},
+     good:["先行できて粘りがある"],
+     bad:["重賞では決め手が足りない","サンデー系でもアメリカ母父でもない"]},
+    {n:11,w:6,name:"ジュウリョクピエロ",sa:"牝3",kg:54,jockey:"今村聖奈",trainer:"寺島良",sire:"オルフェーヴル",dam:"ハッピーヴァリュー",bms:"ゼンノロブロイ",odds:4.8,
+     recent:"オークス 1着（5人気）／忘れな草賞（7人気）／1勝クラス（7人気）",
+     f:{jitsu:4.5,course:4,baba:3,blood:3.5,waku:3.5,jockey:2.5,trend:3},
+     good:["今年のオークス馬（上がり33.1秒の末脚）","3歳は54kgで、古馬より2kg軽い","6枠は過去10年で複勝率25%とまずまず","父オルフェーヴルはサンデー系で、雨も苦にしにくい家系"],
+     bad:["約半年ぶりのレース","「危険な人気馬」と書いた予想家もいる","雨の馬場はまだ走ったことがない","1番人気の過去10年は3勝・複勝率50%で、信じきるには少し弱い"]},
+    {n:12,w:6,name:"シャドウメテオ",sa:"牝4",kg:56,jockey:"三浦皇成",trainer:"金成貴史",sire:"オルフェーヴル",dam:"パールシャドウ",bms:"クロフネ",odds:17.6,
+     recent:"新潟牝馬S 1着（1人気）／日本海S 1着（5人気）／江の島S（8人気）",
+     f:{jitsu:3.5,course:4,baba:4.5,blood:5,waku:3.5,jockey:3,trend:2.5},
+     good:["2連勝中。前走は同じ2200mの新潟牝馬Sを勝った","重馬場のレースを勝っていて雨は得意","父オルフェーヴル（サンデー系）×母の父クロフネ（アメリカ）＝このコースでいちばん来やすい組み合わせ","6枠12番と枠もいい"],
+     bad:["GⅠは初めてで、相手が一気に強くなる","前走はリステッド（重賞より下）"]},
+    {n:13,w:7,name:"ジョスラン",sa:"牝4",kg:56,jockey:"C.ルメール",trainer:"鹿戸雄一",sire:"エピファネイア",dam:"ケイティーズハート",bms:"ハーツクライ",odds:10.3,
+     recent:"アイルランドT 2着（4人気）／ヴィクトリアM（9人気）／小倉牝馬S 1着（1人気）",
+     f:{jitsu:4,course:3.5,baba:3,blood:2.5,waku:2,jockey:5,trend:5},
+     good:["C.ルメール騎手はこのレース過去10年で2勝","前走アイルランドTはカムニャックと0.1秒差の2着","4歳・前走アイルランドTは傾向ぴったり"],
+     bad:["京都開催の7枠は過去16頭で3着内0","雨の馬場は未経験","以前は気性の難しさがあった"]},
+    {n:14,w:7,name:"チェルヴィニア",sa:"牝5",kg:56,jockey:"T.マーカンド",trainer:"木村哲也",sire:"ハービンジャー",dam:"チェッキーノ",bms:"キングカメハメハ",odds:34.4,
+     recent:"新潟記念（6人気）／ヴィクトリアM（6人気）／中山記念（5人気）",
+     f:{jitsu:3,course:3.5,baba:2,blood:2,waku:2,jockey:4,trend:1.5},
+     good:["GⅠ馬で、力を出せれば上位","世界的な名手マーカンド騎手"],
+     bad:["稍重の京都記念で1番人気9着と、雨で崩れた","5歳・7枠と傾向は苦しい","最近は人気より下の着順"]},
+    {n:15,w:7,name:"ラフターラインズ",sa:"牝3",kg:54,jockey:"武豊",trainer:"小笠倫弘",sire:"アルアイン",dam:"バンゴール",bms:"キングカメハメハ",odds:9.3,
+     recent:"オークス 3着（2人気）／フローラS 1着（1人気）／きさらぎ賞（4人気）",
+     f:{jitsu:4,course:3.5,baba:3,blood:3.5,waku:2,jockey:2.5,trend:2.5},
+     good:["フローラS1着、オークスは勝ち馬とタイム差なしの3着","3歳で54kg"],
+     bad:["予定していた毎日王冠を、脚の蹄の熱で取りやめてぶっつけ本番","武豊騎手はこのレース過去10年で8回乗って3着内なし","7枠は京都開催で苦戦"]},
+    {n:16,w:8,name:"アクアヴァーナル",sa:"牝5",kg:56,jockey:"松山弘平",trainer:"四位洋文",sire:"エピファネイア",dam:"エイプリルミスト",bms:"ディープインパクト",odds:7.3,
+     recent:"京都大賞典 3着（2人気）／天皇賞・春 4着（4人気）／阪神大賞典 2着（6人気）",
+     f:{jitsu:4.5,course:4.5,baba:3.5,blood:2.5,waku:1.5,jockey:4,trend:3},
+     good:["牡馬相手に阪神大賞典2着・天皇賞（春）4着。スタミナはメンバー随一","前走は同じ京都の京都大賞典で3着"],
+     bad:["大外の8枠16番。京都開催の8枠は複勝率5.6%","5歳は苦戦傾向","父エピファネイア×母の父ディープは血統データでは割り引き"]},
+    {n:17,w:8,name:"ケリフレッドアスク",sa:"牝4",kg:56,jockey:"北村友一",trainer:"藤原英昭",sire:"ドゥラメンテ",dam:"ディープインアスク",bms:"ディープインパクト",odds:100.9,
+     recent:"新潟牝馬S（2人気）／クイーンS（5人気）／函館記念（7人気）",
+     f:{jitsu:1.5,course:2.5,baba:2.5,blood:2.5,waku:1.5,jockey:2.5,trend:2},
+     good:["名門の藤原英昭厩舎"],
+     bad:["実績・人気とも最下位","8枠の外"]},
+    {n:18,w:8,name:"コガネノソラ",sa:"牝5",kg:56,jockey:"丹内祐次",trainer:"菊沢隆徳",sire:"ゴールドシップ",dam:"マイネヒメル",bms:"ロージズインメイ",odds:15.4,
+     recent:"クイーンS 2着（3人気）／府中牝馬S（3人気）／福島牝馬S 1着（9人気）",
+     f:{jitsu:3.5,course:3.5,baba:5,blood:4.5,waku:1,jockey:3,trend:2},
+     good:["雨の馬場は3-0-0-1。メンバーでいちばん道悪が得意","父ゴールドシップ（サンデー系・スタミナ型）×母の父アメリカ","福島牝馬S1着・クイーンS2着と牝馬重賞で安定"],
+     bad:["大外18番。京都開催の8枠は複勝率5.6%","5歳は苦戦傾向"]}
+  ],
+  trends:[
+    {h:"人気",items:["1番人気は3勝・複勝率50%（京都では57%）","2番人気は0勝・複勝率20%と不振","3番人気が4勝・複勝率70%でいちばん信頼できる（京都では86%）","10番人気以下は複勝率5%。ただし2021年は10番人気が勝って3連単339万円"]},
+    {h:"年齢",items:["3歳：複勝率23%（54kgで出られる）","4歳：6勝・複勝率23%でいちばん勝っている","5歳：複勝率10%と苦戦","6歳以上：勝ちなし"]},
+    {h:"前走",items:["前走がGⅠ：複勝率31%","前走がGⅡ：8勝（主力）","前走が東京芝1800mのGⅡ（今年のアイルランドトロフィー）：4勝2着6回でいちばん来ている","前走が3勝クラス：15頭で3着内0"]},
+    {h:"枠（京都開催）",items:["1〜4枠：複勝率24%","5〜8枠：複勝率13%","1枠は複勝率42%と強い。8枠は5.6%、7枠は0%（16頭）","京都外回り2200mは奇数番がやや有利（複勝率25.8% vs 24.5%）"]},
+    {h:"脚質（4コーナーの位置）",items:["5〜9番手（中団）が7勝でいちばん勝っている","2〜4番手も3勝","10番手より後ろは複勝率7.5%。後ろすぎるとむずかしい"]},
+    {h:"血統",items:["父がサンデー系：3着内率25.6%（それ以外は12.1%）","母の父がアメリカ血統：33.3%でいちばん高い","父がサンデー系以外で母の父がサンデー系：5.6%と苦戦"]},
+    {h:"騎手",items:["M.デムーロ、C.ルメール、C.デムーロが各2勝","武豊騎手は8回乗って3着内なし"]},
+    {h:"コースと今日の馬場",items:["京都芝2200m外回り。スタートから1コーナーまで約400m","3コーナーの「淀の坂」（高低差4.3m）を下りながら一気にペースが上がる。長く脚を使える馬が有利","直線は約399m","今日は朝から雨（昼まで1時間4mmほど、15時ごろ弱い雨）。馬場は稍重の発表","Bコース最終日。内の芝が少し荒れている可能性"]}
+  ],
+  sources:"情報のもと：スポーツナビ出馬表・オッズ（11/15 9:47）、netkeiba、競馬TIMES（過去10年・血統・馬場）、ウマニティ、ABEMA TIMES、競馬の魅力。点数はこれらをもとに Claude がつけた目安です。"
+}];
+
+/* ===== 状態 ===== */
+const LS = k => "kb-" + RACES[0].id + "-" + k;
+function load(k, d){ try{ const v = localStorage.getItem(LS(k)); return v ? JSON.parse(v) : d; }catch(e){ return d; } }
+function save(k, v){ try{ localStorage.setItem(LS(k), JSON.stringify(v)); }catch(e){} }
+
+const R = RACES[0];
+const H = R.horses;
+const byN = {}; H.forEach(h => byN[h.n] = h);
+// 新しいオッズが届いたら、自分で打ちかえた数字は捨てて新しい方を使う
+if (load("liveTime", "") !== LIVE.time){ save("odds", {}); save("liveTime", LIVE.time); }
+const userOdds = load("odds", {});
+H.forEach(h => { if (LIVE.odds[h.n]) h.odds = LIVE.odds[h.n]; h.odds0 = h.odds; if (userOdds[h.n]) h.odds = userOdds[h.n]; });
+const BABA_OF = {"良":"ryo","稍重":"yayaomo","重":"omo","不良":"omo"};
+if (BABA_OF[LIVE.baba] && load("liveBaba","") !== LIVE.baba){ save("baba", BABA_OF[LIVE.baba]); save("liveBaba", LIVE.baba); }
+let baba = load("baba", R.defaultBaba);
+const wt = n => LIVE.weight && LIVE.weight[n] ? LIVE.weight[n] : "";
+let tab = load("tab", "yoso");
+
+const FAC = [["jitsu","実力・実績"],["course","コース・距離"],["baba","雨の馬場"],["blood","血統"],["waku","枠"],["jockey","騎手"],["trend","過去の傾向"]];
+const W_BASE = {jitsu:2.5,course:1.2,baba:1.2,blood:1,waku:0.8,jockey:1,trend:1};
+const BABA_W = {ryo:0.4, yayaomo:1.2, omo:2.2};
+const yen = v => Math.round(v).toLocaleString("ja-JP") + "円";
+
+/* ===== 点数と確率 ===== */
+let P = {}; // 計算結果
+function compute(){
+  const w = {...W_BASE, baba:BABA_W[baba]};
+  const wsum = Object.values(w).reduce((a,b)=>a+b,0);
+  H.forEach(h => { let s=0; for (const k in w) s += h.f[k]*w[k]; h.score = Math.round(s/(wsum*5)*100); });
+  // みんなの評価（オッズ）からの確率
+  const inv = H.map(h => 1/h.odds), invSum = inv.reduce((a,b)=>a+b,0);
+  H.forEach((h,i) => h.pm = inv[i]/invSum);
+  // Claudeの評価からの確率
+  const ex = H.map(h => Math.exp(h.score*0.1)), exSum = ex.reduce((a,b)=>a+b,0);
+  H.forEach((h,i) => { h.pc = ex[i]/exSum; h.p = 0.5*h.pm + 0.5*h.pc; h.value = h.pc/h.pm; });
+  const pop = [...H].sort((a,b)=>a.odds-b.odds); pop.forEach((h,i)=>h.ninki=i+1);
+  // 印
+  H.forEach(h => h.mark = "");
+  const rank = [...H].sort((a,b)=>b.p-a.p);
+  rank.forEach((h,i)=>h.rank=i+1);
+  // ☆は「人気がないのにClaudeの評価が高い馬」を先に決める
+  const ana = [...H].filter(h=>h.odds>=13).sort((a,b)=>b.value-a.value)[0];
+  if (ana) ana.mark = "☆";
+  const rest = rank.filter(h=>h!==ana);
+  rest[0].mark="◎"; rest[1].mark="○"; rest[2].mark="▲";
+  rest.slice(3,6).forEach(h=>h.mark="△");
+  P.rank = rank;
+  P.pm = {}; P.p = {};
+  H.forEach(h => { P.pm[h.n]=h.pm; P.p[h.n]=h.p; });
+  P.placeM = placeProb(P.pm); P.placeP = placeProb(P.p);
+}
+/* ハービル式：単勝の確率から 2着・3着の確率を出す */
+function ex2(p,i,j){ return p[i]*p[j]/(1-p[i]); }
+function ex3(p,i,j,k){ return p[i]*p[j]/(1-p[i])*p[k]/(1-p[i]-p[j]); }
+function placeProb(p){
+  const r = {}; H.forEach(h=>r[h.n]=0);
+  for (const a of H) for (const b of H){ if (a===b) continue;
+    const pab = ex2(p,a.n,b.n);
+    for (const c of H){ if (c===a||c===b) continue; const t = pab*p[c.n]/(1-p[a.n]-p[b.n]); r[a.n]+=t; r[b.n]+=t; r[c.n]+=t; } }
+  return r;
+}
+function trio(p,i,j,k){ return ex3(p,i,j,k)+ex3(p,i,k,j)+ex3(p,j,i,k)+ex3(p,j,k,i)+ex3(p,k,i,j)+ex3(p,k,j,i); }
+function wide(p,i,j){ let s=0; for (const h of H){ if (h.n===i||h.n===j) continue; s += trio(p,i,j,h.n); } return s; }
+
+const TYPES = {
+  tan:   {label:"単勝", k:1, ord:false, take:0.20, help:"1着の馬を当てる"},
+  fuku:  {label:"複勝", k:1, ord:false, take:0.20, help:"3着までに入る馬を当てる（いちばん当たりやすい）"},
+  umaren:{label:"馬連", k:2, ord:false, take:0.225,help:"1着と2着の2頭を当てる（順番は問わない）"},
+  wide:  {label:"ワイド",k:2, ord:false, take:0.225,help:"3着までに入る2頭を当てる（順番は問わない）"},
+  umatan:{label:"馬単", k:2, ord:true,  take:0.25, help:"1着→2着を順番どおりに当てる"},
+  sanpuku:{label:"3連複",k:3, ord:false, take:0.25, help:"1〜3着の3頭を当てる（順番は問わない）"},
+  santan:{label:"3連単",k:3, ord:true,  take:0.275,help:"1着→2着→3着を順番どおりに当てる（いちばん高配当）"}
+};
+function probOf(type, c, p, place){
+  switch(type){
+    case "tan": return p[c[0]];
+    case "fuku": return place[c[0]];
+    case "umaren": return ex2(p,c[0],c[1])+ex2(p,c[1],c[0]);
+    case "wide": return wide(p,c[0],c[1]);
+    case "umatan": return ex2(p,c[0],c[1]);
+    case "sanpuku": return trio(p,c[0],c[1],c[2]);
+    case "santan": return ex3(p,c[0],c[1],c[2]);
+  }
+}
+function estOdds(type, c){
+  if (type==="tan") return byN[c[0]].odds;
+  const pm = probOf(type, c, P.pm, P.placeM);
+  let o = (1-TYPES[type].take)/pm;
+  if (type==="fuku") o = Math.max(1.1, 1 + (o-1)*0.7); // 複勝は3頭で山分けするので低め
+  return Math.max(1.1, Math.floor(o*10)/10);
+}
+
+/* ===== 予想タブ ===== */
+const numTag = h => `<span class="kb-num w${h.w}">${h.n}</span>`;
+function valueChip(h){
+  if (h.odds>=13 && h.value>=1.3) return `<span class="kb-chip ana">穴でお得</span>`;
+  if (h.value>=1.15) return `<span class="kb-chip good">お得</span>`;
+  if (h.value<=0.8) return `<span class="kb-chip bad">割高</span>`;
+  return `<span class="kb-chip mid">ふつう</span>`;
+}
+function renderYoso(){
+  document.querySelectorAll("#babaSeg button").forEach(b=>b.setAttribute("aria-pressed", b.dataset.baba===baba));
+  const order = ["◎","○","▲","☆"];
+  const names = {"◎":"本命","○":"対抗","▲":"単穴","☆":"穴馬"};
+  let html = order.map(m => { const h = H.find(x=>x.mark===m); if(!h) return "";
+    return `<div class="kb-mark"><span class="kb-mk ${m==="◎"?"hon":m==="☆"?"ana":""}">${m}</span>${numTag(h)}<div style="min-width:0"><b>${h.name}</b><small>${names[m]}・${h.odds}倍（${h.ninki}番人気）</small></div></div>`; }).join("");
+  const del = H.filter(h=>h.mark==="△").sort((a,b)=>a.rank-b.rank);
+  html += `<div class="kb-mark"><span class="kb-mk">△</span><div style="min-width:0"><b>${del.map(h=>h.n+" "+h.name).join("、")}</b><small>連下（ヒモ）</small></div></div>`;
+  document.getElementById("marks").innerHTML = html;
+  document.getElementById("sohyo").textContent = R.sohyo[baba];
+
+  const rows = [...P.rank];
+  let t = `<thead><tr><th>印</th><th>馬</th><th>騎手</th><th class="r">単勝オッズ</th><th class="r">人気</th><th>点数</th><th class="r">勝つ確率</th><th class="r">3着内</th><th>お得度</th></tr></thead><tbody>`;
+  rows.forEach(h => {
+    t += `<tr><td style="font-weight:700;font-size:18px;color:${h.mark==="◎"?"var(--red)":h.mark==="☆"?"var(--gold)":"inherit"}">${h.mark||"　"}</td>
+      <td><div style="display:flex;gap:8px;align-items:center">${numTag(h)}<b>${h.name}</b>${wt(h.n)?`<span class="kb-note">${wt(h.n)}kg</span>`:""}</div></td>
+      <td>${h.jockey}</td>
+      <td class="r"><input class="kb-odds" id="od${h.n}" type="number" step="0.1" min="1" value="${h.odds}" aria-label="${h.name}の単勝オッズ"></td>
+      <td class="r">${h.ninki}</td>
+      <td><span class="kb-bar"><i style="width:${h.score}%"></i></span>${h.score}</td>
+      <td class="r">${(h.p*100).toFixed(1)}%</td>
+      <td class="r">${(P.placeP[h.n]*100).toFixed(0)}%</td>
+      <td>${valueChip(h)}</td></tr>`;
+  });
+  document.getElementById("rankTable").innerHTML = t + "</tbody>";
+  rows.forEach(h => document.getElementById("od"+h.n).addEventListener("change", e => {
+    const v = parseFloat(e.target.value); if (!(v>=1)) { e.target.value = h.odds; return; }
+    h.odds = v; userOdds[h.n] = v; save("odds", userOdds); refresh();
+  }));
+}
+
+/* ===== 馬タブ ===== */
+const open = new Set();
+function renderUma(){
+  const box = document.getElementById("horseList");
+  box.innerHTML = H.map(h => `
+    <div class="kb-horse">
+      <button aria-expanded="${open.has(h.n)}" data-n="${h.n}">${numTag(h)}
+        <span class="nm">${h.mark?`<span style="color:${h.mark==="◎"?"var(--red)":h.mark==="☆"?"var(--gold)":"inherit"}">${h.mark}</span> `:""}${h.name}
+          <small>${h.sa}・${h.kg}kg・${wt(h.n)?"馬体重 "+wt(h.n)+"kg・":""}${h.jockey}・${h.odds}倍（${h.ninki}番人気）</small></span>
+        <span>点数 <b>${h.score}</b></span><span aria-hidden="true">${open.has(h.n)?"▲":"▼"}</span>
+      </button>
+      ${open.has(h.n)?`<div class="kb-detail">
+        <div>${FAC.map(([k,l])=>`<div class="kb-fac"><span>${l}</span><span class="kb-bar"><i style="width:${h.f[k]*20}%"></i></span><span>${h.f[k]}</span></div>`).join("")}
+          <p style="margin:8px 0 0;font-size:14px"><b>血統</b>　父 ${h.sire} ／ 母 ${h.dam} ／ 母の父 ${h.bms}<br><b>調教師</b>　${h.trainer}<br><b>近走</b>　${h.recent}</p></div>
+        <div><b>良いところ</b><ul class="kb-list">${h.good.map(x=>`<li class="kb-good">${x}</li>`).join("")}</ul>
+          <b>心配なところ</b><ul class="kb-list">${h.bad.map(x=>`<li class="kb-bad">${x}</li>`).join("")}</ul>
+          <p class="kb-note" style="margin:4px 0 0">勝つ確率 ${(h.p*100).toFixed(1)}%・3着内 ${(P.placeP[h.n]*100).toFixed(0)}%・100円の単勝で ${yen(h.odds*100)}／複勝の目安 ${yen(estOdds("fuku",[h.n])*100)}</p></div>
+      </div>`:""}
+    </div>`).join("");
+  box.querySelectorAll(".kb-horse>button").forEach(b => b.addEventListener("click", () => {
+    const n = +b.dataset.n; open.has(n)?open.delete(n):open.add(n); renderUma();
+  }));
+}
+
+/* ===== 買い目タブ ===== */
+let bet = load("bet", {type:"sanpuku", mode:"nagashi", axis:[], picks:[], unit:100});
+let role = "axis";
+let manual = {}; // 打ちかえたオッズ（組み合わせごと）
+function combos(){
+  const T = TYPES[bet.type];
+  if (bet.mode==="list") return (bet.list||[]).map(c=>[...c]);
+  if (T.k===1) return bet.picks.map(n=>[n]);
+  const out = [];
+  if (bet.mode==="box"){
+    const a = bet.picks;
+    if (T.k===2) for (let i=0;i<a.length;i++) for (let j=0;j<a.length;j++){ if(i===j) continue; if(!T.ord && j<i) continue; out.push([a[i],a[j]]); }
+    if (T.k===3) for (let i=0;i<a.length;i++) for (let j=0;j<a.length;j++) for (let k=0;k<a.length;k++){
+      if(i===j||j===k||i===k) continue; if(!T.ord && !(i<j&&j<k)) continue; out.push([a[i],a[j],a[k]]); }
+  } else {
+    const ax = bet.axis[0]; if (ax==null) return [];
+    const a = bet.picks.filter(n=>n!==ax);
+    if (T.k===2) a.forEach(x=>out.push([ax,x]));
+    if (T.k===3) for (let i=0;i<a.length;i++) for (let j=0;j<a.length;j++){ if(i===j) continue; if(!T.ord && j<i) continue; out.push([ax,a[i],a[j]]); }
+  }
+  return out;
+}
+const sep = t => TYPES[t].ord ? "→" : "-";
+function comboRows(b){
+  const saved = bet; bet = b; const cs = combos(); bet = saved;
+  return cs.map(c => {
+    const key = b.type+":"+c.join("-");
+    const o = manual[key] || estOdds(b.type, c);
+    return {c, key, odds:o, pay:o*b.unit, prob:probOf(b.type, c, P.p, P.placeP), manual:!!manual[key]};
+  });
+}
+function renderKaime(){
+  document.getElementById("typeSeg").innerHTML = Object.entries(TYPES).map(([k,t])=>`<button data-type="${k}" aria-pressed="${bet.type===k}">${t.label}</button>`).join("");
+  document.getElementById("typeHelp").textContent = TYPES[bet.type].help;
+  const single = TYPES[bet.type].k===1;
+  document.querySelectorAll("#modeSeg button").forEach(b=>{ b.setAttribute("aria-pressed", b.dataset.mode===bet.mode && !single); b.disabled = single; b.style.opacity = single?.45:1; });
+  const nag = bet.mode==="nagashi" && !single;
+  document.getElementById("pickRole").innerHTML = nag ? `<div class="kb-seg"><button data-role="axis" aria-pressed="${role==="axis"}">軸を選ぶ（1頭）</button><button data-role="aite" aria-pressed="${role==="aite"}">相手を選ぶ</button></div><span class="kb-note">${TYPES[bet.type].ord?"軸は1着に固定します":"軸が必ず入る組み合わせだけ買います"}</span>` : "";
+  document.getElementById("pickChips").innerHTML = H.map(h => {
+    const isAx = nag && bet.axis.includes(h.n), isP = bet.picks.includes(h.n);
+    return `<button class="kb-pick ${isAx?"axis":""}" data-n="${h.n}" aria-pressed="${isAx||isP}">${numTag(h)}${h.mark?`<span class="tag">${h.mark}</span>`:""}${h.name}${isAx?`<span class="tag" style="color:var(--red)">軸</span>`:""}</button>`; }).join("");
+  document.getElementById("unit").value = bet.unit;
+
+  const rows = comboRows(bet).sort((a,b)=>b.prob-a.prob);
+  const n = rows.length, total = n*bet.unit;
+  const hitP = Math.min(1, rows.reduce((a,r)=>a+r.prob,0));
+  const ev = rows.reduce((a,r)=>a+r.prob*r.pay,0);
+  const pays = rows.map(r=>r.pay);
+  document.getElementById("betSum").innerHTML = n ? `
+    <div><small>点数</small><b>${n}点</b></div>
+    <div><small>かかるお金</small><b>${yen(total)}</b></div>
+    <div><small>当たったらもらえる額</small><b>${yen(Math.min(...pays))}${n>1?`〜${yen(Math.max(...pays))}`:""}</b></div>
+    <div><small>当たる確率（目安）</small><b>${(hitP*100).toFixed(hitP<0.1?1:0)}%</b></div>
+    <div><small>平均すると戻る額（目安）</small><b>${yen(ev)}</b></div>` : `<div style="grid-column:1/-1"><small>まだ買い目がありません</small><b style="font-size:15px">${nag && !bet.axis.length?"「軸を選ぶ」で1頭えらんでください":"馬を選んでください"}</b></div>`;
+  const warn = [];
+  if (n && Math.min(...pays) < total) warn.push(`当たっても「かかるお金」より少ない組み合わせがあります（トリガミ）。`);
+  if (n>40) warn.push(`点数が多めです。相手を絞ると1点に多く賭けられます。`);
+  document.getElementById("betWarn").innerHTML = warn.map(w=>`<p class="kb-warn" style="margin:0 0 8px">${w}</p>`).join("");
+  document.getElementById("betTable").innerHTML = n ? `<thead><tr><th>組み合わせ</th><th class="r">オッズ</th><th class="r">もらえる額</th><th class="r">確率</th></tr></thead><tbody>` +
+    rows.map(r=>`<tr${r.pay<total?' style="color:var(--sub)"':""}><td>${r.c.map(x=>`${x} ${byN[x].name}`).join(" "+sep(bet.type)+" ")}</td>
+      <td class="r"><input class="kb-odds" data-key="${r.key}" type="number" step="0.1" min="1" value="${r.odds}" aria-label="オッズ"${r.manual?' style="border-color:var(--turf)"':""}></td>
+      <td class="r"><b>${yen(r.pay)}</b></td><td class="r">${(r.prob*100).toFixed(r.prob<0.01?2:1)}%</td></tr>`).join("") + "</tbody>" : "";
+  document.querySelectorAll("#betTable .kb-odds").forEach(i=>i.addEventListener("change", e=>{
+    const v = parseFloat(e.target.value); if (v>=1){ manual[e.target.dataset.key]=v; save("manual",manual); renderKaime(); renderCart(); } }));
+  save("bet", bet);
+}
+function renderPresets(){
+  const m = s => H.filter(h=>h.mark===s).map(h=>h.n);
+  const hon = m("◎")[0], tai = m("○")[0], san = m("▲")[0], ana = m("☆")[0], del = m("△");
+  const budget = Math.max(100, +document.getElementById("budget").value || 3000);
+  const list = [
+    {t:"堅実：ワイド", d:"◎から○▲☆へワイド3点。3着までに2頭入ればOK", b:{type:"wide",mode:"nagashi",axis:[hon],picks:[hon,tai,san,ana]}},
+    {t:"バランス：3連複", d:"◎を軸に○▲☆△へ3連複。順番は問わない", b:{type:"sanpuku",mode:"nagashi",axis:[hon],picks:[hon,tai,san,ana,...del]}},
+    {t:"高配当：3連単", d:"◎を1着に固定して○▲☆へ。当たれば大きい", b:{type:"santan",mode:"nagashi",axis:[hon],picks:[hon,tai,san,ana]}},
+    {t:"穴の応援：☆の複勝", d:`☆${byN[ana]?byN[ana].name:""}が3着までに来れば当たり`, b:{type:"fuku",mode:"box",axis:[],picks:[ana]}}
+  ];
+  const box = document.getElementById("presets");
+  box.innerHTML = list.map((p,i)=>{ const saved = bet; bet = {...p.b, unit:100}; const n = combos().length; bet = saved;
+    const unit = Math.max(100, Math.floor(budget/n/100)*100);
+    return `<button data-i="${i}"><b>${p.t}（${n}点×${unit.toLocaleString()}円）</b><span>${p.d}</span></button>`; }).join("");
+  box.querySelectorAll("button").forEach(b=>b.addEventListener("click", ()=>{
+    const p = list[+b.dataset.i]; bet = {...p.b, unit:100}; const n = combos().length;
+    bet.unit = Math.max(100, Math.floor(budget/n/100)*100); role="aite"; renderKaime();
+    document.getElementById("betSum").scrollIntoView({behavior:"smooth", block:"center"});
+  }));
+}
+
+/* 券種ごとのおすすめ */
+function poolCombos(type, pool){
+  const T = TYPES[type], out = [];
+  if (T.k===1) return pool.map(n=>[n]);
+  for (const a of pool) for (const b of pool){ if (a===b) continue; if (!T.ord && b<a) continue;
+    if (T.k===2){ out.push([a,b]); continue; }
+    for (const c of pool){ if (c===a||c===b) continue; if (!T.ord && c<b) continue; out.push([a,b,c]); } }
+  return out;
+}
+function recsFor(type){
+  const pool = H.filter(h=>h.mark).map(h=>h.n);
+  const rows = poolCombos(type, pool).map(c=>{ const odds = estOdds(type,c), prob = probOf(type,c,P.p,P.placeP); return {c, odds, prob, ev:odds*prob}; });
+  if (!rows.length) return [];
+  const hon = rows.reduce((a,b)=>b.prob>a.prob?b:a);
+  const rest1 = rows.filter(r=>r!==hon && r.prob>=hon.prob*0.25);
+  const otoku = rest1.length ? rest1.reduce((a,b)=>b.ev>a.ev?b:a) : null;
+  const rest2 = rows.filter(r=>r!==hon && r!==otoku && r.prob>=hon.prob*0.2);
+  const yume = rest2.length ? rest2.reduce((a,b)=>b.odds>a.odds?b:a) : null;
+  return [["hon","本線",hon],["otoku","お得",otoku],["yume","一発",yume]].filter(x=>x[2]);
+}
+function useRecs(type, list){
+  const budget = Math.max(100, +document.getElementById("budget").value || 3000);
+  bet = {type, mode:"list", list, axis:[], picks:[...new Set(list.flat())], unit:Math.max(100, Math.floor(budget/list.length/100)*100)};
+  renderKaime(); document.getElementById("betSum").scrollIntoView({behavior:"smooth", block:"center"});
+}
+function renderRecs(){
+  const box = document.getElementById("recs"); const all = {};
+  box.innerHTML = Object.entries(TYPES).map(([k,T])=>{ const rs = recsFor(k); all[k] = rs;
+    return `<div><h3>${T.label}<small>${T.help}</small></h3>` + rs.map(([cls,lab,r],i)=>`
+      <div class="kb-recrow"><span class="kb-rtag ${cls}">${lab}</span>
+        <span class="cb">${r.c.map(n=>numTag(byN[n])+`<span>${byN[n].name}</span>`).join(`<span aria-hidden="true">${sep(k)}</span>`)}</span>
+        <button class="kb-mini" data-t="${k}" data-i="${i}">使う</button>
+        <span class="info">${r.odds}倍・100円→<b>${yen(r.odds*100)}</b>・当たる確率 ${(r.prob*100).toFixed(r.prob<0.01?2:1)}%</span></div>`).join("") +
+      `<button class="kb-mini" data-t="${k}" data-i="all" style="width:100%;margin-top:4px">3つまとめて買い目に入れる</button></div>`; }).join("");
+  box.querySelectorAll("button").forEach(b=>b.addEventListener("click", ()=>{
+    const rs = all[b.dataset.t]; const list = b.dataset.i==="all" ? rs.map(x=>x[2].c) : [rs[+b.dataset.i][2].c];
+    useRecs(b.dataset.t, list); }));
+}
+
+/* 買う予定 */
+let cart = load("cart", []);
+manual = load("manual", {});
+function betLabel(b){
+  const T = TYPES[b.type];
+  if (b.mode==="list") return `${T.label} ${b.list.map(c=>c.join(sep(b.type))).join("、")}`;
+  if (T.k===1) return `${T.label} ${b.picks.join("・")}`;
+  if (b.mode==="box") return `${T.label} ボックス ${b.picks.join("・")}`;
+  return `${T.label} 軸${b.axis[0]}${T.ord?"（1着）":""} → ${b.picks.filter(n=>n!==b.axis[0]).join("・")}`;
+}
+function renderCart(){
+  const el = document.getElementById("cart");
+  if (!cart.length){ el.innerHTML = `<p class="kb-note">まだ入っていません。上で買い目を作って「買う予定に入れる」を押すと、ここに合計が出ます。</p>`; renderSim(); return; }
+  let total = 0;
+  el.innerHTML = `<div class="kb-scroll"><table><thead><tr><th>馬券</th><th class="r">点数</th><th class="r">金額</th><th class="r">当たったら</th><th></th></tr></thead><tbody>` +
+    cart.map((b,i)=>{ const rows = comboRows(b); const cost = rows.length*b.unit; total += cost; const pays = rows.map(r=>r.pay);
+      return `<tr><td>${betLabel(b)}<br><span class="kb-note">1点 ${yen(b.unit)}</span></td><td class="r">${rows.length}</td><td class="r">${yen(cost)}</td>
+        <td class="r">${rows.length?yen(Math.min(...pays))+(rows.length>1?"〜"+yen(Math.max(...pays)):""):"-"}</td>
+        <td><button class="kb-btn ghost" data-del="${i}" style="min-height:40px;padding:0 10px">消す</button></td></tr>`; }).join("") +
+    `</tbody></table></div><p style="font-size:18px;margin:8px 0"><b>合計 ${yen(total)}</b></p>`;
+  el.querySelectorAll("[data-del]").forEach(b=>b.addEventListener("click", ()=>{ cart.splice(+b.dataset.del,1); save("cart",cart); renderCart(); }));
+  renderSim();
+}
+let sim = load("sim", [null,null,null]);
+function renderSim(){
+  const row = document.getElementById("simRow");
+  if (!row.dataset.built){
+    row.innerHTML = ["1着","2着","3着"].map((l,i)=>`<label for="sim${i}">${l}</label><select id="sim${i}" style="min-height:44px;border:1px solid var(--line);border-radius:8px;padding:0 6px;background:var(--bg)"><option value="">えらぶ</option>${H.map(h=>`<option value="${h.n}">${h.n} ${h.name}</option>`).join("")}</select>`).join("") +
+      `<button class="kb-btn ghost" id="simTop">予想の◎○▲で試す</button>`;
+    row.dataset.built = 1;
+    [0,1,2].forEach(i=>document.getElementById("sim"+i).addEventListener("change", e=>{ sim[i] = e.target.value?+e.target.value:null; save("sim",sim); renderSim(); }));
+    document.getElementById("simTop").addEventListener("click", ()=>{ sim = ["◎","○","▲"].map(m=>H.find(h=>h.mark===m).n); save("sim",sim); renderSim(); });
+  }
+  [0,1,2].forEach(i=>document.getElementById("sim"+i).value = sim[i] ?? "");
+  const out = document.getElementById("simOut");
+  if (sim.some(x=>x==null) || new Set(sim).size<3){ out.innerHTML = `<p class="kb-note">1着・2着・3着をえらぶと、買う予定の馬券でいくら戻るか計算します。</p>`; return; }
+  if (!cart.length){ out.innerHTML = `<p class="kb-note">買う予定の馬券がまだありません。</p>`; return; }
+  const [a,b,c] = sim; let back = 0, cost = 0; const hits = [];
+  cart.forEach(bt=>{ comboRows(bt).forEach(r=>{ cost += bt.unit; const x = r.c; let hit=false;
+    switch(bt.type){
+      case "tan": hit = x[0]===a; break;
+      case "fuku": hit = sim.includes(x[0]); break;
+      case "umaren": hit = x.includes(a)&&x.includes(b); break;
+      case "wide": hit = sim.includes(x[0])&&sim.includes(x[1]); break;
+      case "umatan": hit = x[0]===a&&x[1]===b; break;
+      case "sanpuku": hit = x.every(v=>sim.includes(v)); break;
+      case "santan": hit = x[0]===a&&x[1]===b&&x[2]===c; break; }
+    if (hit){ back += r.pay; hits.push(`${TYPES[bt.type].label} ${x.join(sep(bt.type))}（${r.odds}倍）${yen(r.pay)}`); } }); });
+  const diff = back - cost;
+  out.innerHTML = `<div class="kb-sum"><div><small>使うお金</small><b>${yen(cost)}</b></div><div><small>戻ってくるお金</small><b class="${back?"kb-hit":""}">${yen(back)}</b></div><div><small>差し引き</small><b style="color:${diff>=0?"var(--turf)":"var(--red)"}">${diff>=0?"＋":"－"}${yen(Math.abs(diff))}</b></div></div>` +
+    (hits.length ? `<ul class="kb-list">${hits.map(h=>`<li class="kb-good">当たり：${h}</li>`).join("")}</ul>` : `<p class="kb-note">この順番だと当たりはありません。</p>`) +
+    `<button class="kb-btn ghost" id="recBtn">この結果を「今日の収支」に記録する</button>`;
+  document.getElementById("recBtn").addEventListener("click", ()=>{
+    const hist = loadHist(); const i = hist.findIndex(x=>x.race===R.id); const rec = {race:R.id, name:R.name, cost, back, order:[...sim]};
+    if (i>=0) hist[i] = rec; else hist.push(rec); saveHist(hist); renderHist(); });
+}
+/* 今日の収支（レースをまたいで残す） */
+function loadHist(){ try{ return JSON.parse(localStorage.getItem("kb-history")||"[]"); }catch(e){ return []; } }
+function saveHist(h){ try{ localStorage.setItem("kb-history", JSON.stringify(h)); }catch(e){} }
+function renderHist(){
+  const h = loadHist(), el = document.getElementById("hist");
+  if (!h.length){ el.innerHTML = `<p class="kb-note">まだ記録はありません。結果が出たら上のボタンで記録すると、レースごとの使ったお金・戻ったお金がここにたまります。</p>`; return; }
+  const c = h.reduce((a,x)=>a+x.cost,0), b = h.reduce((a,x)=>a+x.back,0), d = b-c;
+  el.innerHTML = `<div class="kb-scroll"><table><thead><tr><th>レース</th><th class="r">使った</th><th class="r">戻った</th><th class="r">差し引き</th></tr></thead><tbody>` +
+    h.map(x=>`<tr><td>${x.name}</td><td class="r">${yen(x.cost)}</td><td class="r">${yen(x.back)}</td><td class="r">${x.back-x.cost>=0?"＋":"－"}${yen(Math.abs(x.back-x.cost))}</td></tr>`).join("") +
+    `</tbody></table></div><p style="font-size:18px;margin:8px 0"><b>今日の合計　<span style="color:${d>=0?"var(--turf)":"var(--red)"}">${d>=0?"＋":"－"}${yen(Math.abs(d))}</span></b>（使った ${yen(c)}／戻った ${yen(b)}）</p>` +
+    `<button class="kb-btn ghost" id="histClear">記録をぜんぶ消す</button>`;
+  document.getElementById("histClear").addEventListener("click", e=>{
+    if (e.target.dataset.sure){ saveHist([]); renderHist(); } else { e.target.dataset.sure = 1; e.target.textContent = "もう一度押すと消えます"; } });
+}
+
+/* ===== 傾向タブ ===== */
+function renderKeiko(){
+  document.getElementById("trendBox").innerHTML = `<p class="kb-note" style="margin-top:0">過去10年（2016〜2025年。2020〜22年は阪神開催）のデータ。「京都開催」は京都で行われた7回だけの数字です。</p>` +
+    `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px">` +
+    R.trends.map(t=>`<div class="kb-panel"><h3 style="margin-top:0">${t.h}</h3><ul class="kb-facts" style="margin:0;padding-left:1.2em">${t.items.map(i=>`<li>${i}</li>`).join("")}</ul></div>`).join("") + `</div>`;
+}
+
+/* ===== 画面のつなぎ ===== */
+function showTab(t){ tab = t; save("tab", t);
+  document.querySelectorAll("#tabs button").forEach(b=>b.setAttribute("aria-selected", b.dataset.tab===t));
+  ["yoso","uma","kaime","keiko"].forEach(k=>document.getElementById("tab-"+k).hidden = k!==t); }
+function refresh(){ compute(); renderYoso(); renderUma(); renderPresets(); renderRecs(); renderKaime(); renderCart(); }
+
+document.getElementById("raceTitle").textContent = R.name + "（" + R.grade + "）";
+document.getElementById("raceMeta").innerHTML = R.meta;
+document.getElementById("oddsTime").textContent = `（いま入っているのは ${LIVE.time} の公式オッズ・馬場「${LIVE.baba}」。発走までClaudeが約15分ごとに新しい数字へ入れかえます）`;
+document.getElementById("liveBar").innerHTML = `<b>公式の数字</b>　${LIVE.time} 更新・馬場 ${LIVE.baba}${Object.keys(LIVE.weight||{}).length?"・馬体重 発表ずみ":""}　<span id="countdown"></span>` +
+  (LIVE.result ? `<br><b style="color:var(--red)">結果</b>　1着 ${LIVE.result[0]} ${byN[LIVE.result[0]].name}／2着 ${LIVE.result[1]} ${byN[LIVE.result[1]].name}／3着 ${LIVE.result[2]} ${byN[LIVE.result[2]].name}` : "");
+function tick(){ const ms = new Date(R.start) - new Date(); const el = document.getElementById("countdown"); if (!el) return;
+  if (ms <= 0){ el.textContent = "発走しました"; return; }
+  const m = Math.floor(ms/60000); el.textContent = `発走まで あと${m>=60?Math.floor(m/60)+"時間":""}${m%60}分`; }
+tick(); setInterval(tick, 30000);
+if (LIVE.result){ sim = [...LIVE.result]; save("sim", sim); }
+document.getElementById("sources").textContent = R.sources;
+document.getElementById("tabs").addEventListener("click", e=>{ const b = e.target.closest("button"); if (b) showTab(b.dataset.tab); });
+document.getElementById("babaSeg").addEventListener("click", e=>{ const b = e.target.closest("button"); if(!b) return; baba = b.dataset.baba; save("baba",baba); refresh(); });
+document.getElementById("resetOdds").addEventListener("click", ()=>{ H.forEach(h=>h.odds=h.odds0); for (const k in userOdds) delete userOdds[k]; save("odds",userOdds); refresh(); });
+document.getElementById("typeSeg").addEventListener("click", e=>{ const b = e.target.closest("button"); if(!b) return; bet.type = b.dataset.type;
+  if (TYPES[bet.type].k===1){ bet.axis=[]; } renderKaime(); });
+document.getElementById("modeSeg").addEventListener("click", e=>{ const b = e.target.closest("button"); if(!b||b.disabled) return; bet.mode = b.dataset.mode; if (bet.mode==="box") bet.axis=[]; role = "axis"; renderKaime(); });
+document.getElementById("pickRole").addEventListener("click", e=>{ const b = e.target.closest("button"); if(!b) return; role = b.dataset.role; renderKaime(); });
+document.getElementById("pickChips").addEventListener("click", e=>{ const b = e.target.closest("button"); if(!b) return; const n = +b.dataset.n;
+  if (bet.mode==="list"){ bet.mode = "box"; delete bet.list; }
+  const nag = bet.mode==="nagashi" && TYPES[bet.type].k>1;
+  if (nag && role==="axis"){ bet.axis = bet.axis.includes(n)?[]:[n]; if (!bet.picks.includes(n) && bet.axis.length) bet.picks.push(n); if (bet.axis.length) role="aite"; }
+  else { const i = bet.picks.indexOf(n); if (i>=0){ bet.picks.splice(i,1); if (bet.axis.includes(n)) bet.axis=[]; } else bet.picks.push(n); }
+  renderKaime(); });
+document.getElementById("unit").addEventListener("change", e=>{ bet.unit = Math.max(100, Math.round((+e.target.value||100)/100)*100); renderKaime(); });
+document.getElementById("clearPick").addEventListener("click", ()=>{ bet.picks=[]; bet.axis=[]; role="axis"; renderKaime(); });
+document.getElementById("budget").addEventListener("input", renderPresets);
+document.getElementById("addCart").addEventListener("click", ()=>{ if (!combos().length) return; cart.push(JSON.parse(JSON.stringify(bet))); save("cart",cart); renderCart();
+  document.getElementById("cart").scrollIntoView({behavior:"smooth", block:"start"}); });
+
+refresh(); renderHist(); showTab(tab);
+</script>
+
+</html>
