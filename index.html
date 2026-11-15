@@ -451,7 +451,7 @@ function compute(){
   H.forEach((h,i) => h.pm = inv[i]/invSum);
   // Claudeの評価からの確率
   const ex = H.map(h => Math.exp(h.score*0.1)), exSum = ex.reduce((a,b)=>a+b,0);
-  H.forEach((h,i) => { h.pc = ex[i]/exSum; h.p = 0.5*h.pm + 0.5*h.pc; h.value = h.pc/h.pm; });
+  H.forEach((h,i) => { h.pc = ex[i]/exSum; h.p = (R.auto ? 0.7 : 0.5)*h.pm + (R.auto ? 0.3 : 0.5)*h.pc; h.value = h.pc/h.pm; });
   const pop = [...H].sort((a,b)=>a.odds-b.odds); pop.forEach((h,i)=>h.ninki=i+1);
   // 印
   H.forEach(h => h.mark = "");
@@ -520,7 +520,7 @@ function valueChip(h){
 function autoSohyo(){
   const m = s => H.find(h=>h.mark===s);
   const d = h => h ? `${h.n} ${h.name}（${h.jockey}${h.last&&h.last.length?"・前走"+(h.last[0]??"-")+"着":""}）` : "";
-  return `簡易予想です。近走の着順・騎手・血統・枠・馬場の点数と、オッズ（みんなの評価）を半分ずつ混ぜて印をつけました。本命は${d(m("◎"))}、対抗は${d(m("○"))}。人気のわりに点数が高い穴馬は ${d(m("☆"))}。`;
+  return `簡易予想です。近走の着順・騎手・血統・枠・馬場の点数と、オッズ（みんなの評価）を3対7で混ぜて印をつけました（簡易予想なので、みんなの評価を重めに見ています）。本命は${d(m("◎"))}、対抗は${d(m("○"))}。人気のわりに点数が高い穴馬は ${d(m("☆"))}。`;
 }
 function renderYoso(){
   document.querySelectorAll("#babaSeg button").forEach(b=>b.setAttribute("aria-pressed", b.dataset.baba===baba));
