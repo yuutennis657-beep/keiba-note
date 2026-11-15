@@ -133,6 +133,7 @@ td.r,th.r{text-align:right}
     <button role="tab" data-tab="uma" aria-selected="false">馬を1頭ずつ見る</button>
     <button role="tab" data-tab="kaime" aria-selected="false">買い目と払い戻し</button>
     <button role="tab" data-tab="keiko" aria-selected="false">傾向・馬場</button>
+    <button role="tab" data-tab="techo" aria-selected="false">予想手帳</button>
   </nav>
 
   <!-- 予想 -->
@@ -218,6 +219,30 @@ td.r,th.r{text-align:right}
   <!-- 傾向 -->
   <section id="tab-keiko" hidden>
     <div id="trendBox"></div>
+  </section>
+
+  <!-- 予想手帳 -->
+  <section id="tab-techo" hidden>
+    <h2 style="margin-top:4px">このレースの自分の予想</h2>
+    <p class="kb-note" style="margin-top:0">馬を押すたびに印が「◎→○→▲→△→☆→なし」と変わります。◎○▲は1頭ずつです。書いたら「手帳に保存」を押してください。</p>
+    <div class="kb-row" style="margin-bottom:8px">
+      <button class="kb-btn ghost" id="tcCopy">Claudeの印を写す</button>
+      <button class="kb-btn ghost" id="tcClear">印を全部消す</button>
+    </div>
+    <div class="kb-chips" id="tcMarks"></div>
+    <h3><label for="tcMemo">メモ（狙い・理由・パドックの気づきなど）</label></h3>
+    <textarea id="tcMemo" rows="4" style="width:100%;font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg)" placeholder="例：雨で道悪巧者を狙う。パドックでシャドウメテオの気配が良かった"></textarea>
+    <div class="kb-row" style="margin-top:8px">
+      <button class="kb-btn" id="tcSave">手帳に保存</button>
+      <span class="kb-note" id="tcMsg"></span>
+    </div>
+
+    <h2>手帳（これまでの予想）</h2>
+    <div id="tcList"></div>
+    <div class="kb-row" style="margin-top:8px">
+      <button class="kb-btn ghost" id="tcExport">文字にしてコピー（控え用）</button>
+    </div>
+    <p class="kb-note">手帳はこのスマホ（このブラウザ）の中に保存されます。ほかの端末とは共有されません。消えると困るときは「文字にしてコピー」でメモ帳などに控えておいてください。</p>
   </section>
 
   <p class="kb-note" style="margin-top:28px" id="sources"></p>
@@ -683,7 +708,7 @@ function renderSim(){
     `<button class="kb-btn ghost" id="recBtn">この結果を「今日の収支」に記録する</button>`;
   document.getElementById("recBtn").addEventListener("click", ()=>{
     const hist = loadHist(); const i = hist.findIndex(x=>x.race===R.id); const rec = {race:R.id, name:R.name, cost, back, order:[...sim]};
-    if (i>=0) hist[i] = rec; else hist.push(rec); saveHist(hist); renderHist(); });
+    if (i>=0) hist[i] = rec; else hist.push(rec); saveHist(hist); renderHist(); renderTcList(); });
 }
 /* 今日の収支（レースをまたいで残す） */
 function loadHist(){ try{ return JSON.parse(localStorage.getItem("kb-history")||"[]"); }catch(e){ return []; } }
@@ -707,10 +732,65 @@ function renderKeiko(){
     R.trends.map(t=>`<div class="kb-panel"><h3 style="margin-top:0">${t.h}</h3><ul class="kb-facts" style="margin:0;padding-left:1.2em">${t.items.map(i=>`<li>${i}</li>`).join("")}</ul></div>`).join("") + `</div>`;
 }
 
+/* ===== 予想手帳（レースをまたいで残す） ===== */
+const TC_KEY = "kb-techo";
+const MARKS = ["◎","○","▲","△","☆",""];
+function loadTc(){ try{ return JSON.parse(localStorage.getItem(TC_KEY)||"[]"); }catch(e){ return []; } }
+function saveTc(list){ try{ localStorage.setItem(TC_KEY, JSON.stringify(list)); return true; }catch(e){ return false; } }
+let tcDraft = (()=>{ const e = loadTc().find(x=>x.race===R.id); return e ? {marks:{...e.marks}, memo:e.memo} : load("tcDraft", {marks:{}, memo:""}); })();
+const markColor = m => m==="◎"?"var(--red)":m==="☆"?"var(--gold)":"var(--fg)";
+function renderTcMarks(){
+  document.getElementById("tcMarks").innerHTML = H.map(h=>{ const m = tcDraft.marks[h.n]||"";
+    return `<button class="kb-pick" data-n="${h.n}" aria-pressed="${!!m}" aria-label="${h.name} 印${m||"なし"}">${numTag(h)}<span class="tag" style="width:1.2em;color:${markColor(m)}">${m||"・"}</span>${h.name}</button>`; }).join("");
+  document.getElementById("tcMemo").value = tcDraft.memo||"";
+}
+function placeOf(n){ return LIVE.result ? LIVE.result.indexOf(n)+1 : 0; }
+function renderTcList(){
+  const list = loadTc().sort((a,b)=>b.saved-a.saved), hist = loadHist();
+  const el = document.getElementById("tcList");
+  if (!list.length){ el.innerHTML = `<p class="kb-note">まだ何も書いていません。上で印をつけて「手帳に保存」を押すと、ここに1レース1ページでたまっていきます。</p>`; return; }
+  el.innerHTML = list.map(e=>{
+    const ms = Object.entries(e.marks).filter(([,m])=>m).sort((a,b)=>MARKS.indexOf(a[1])-MARKS.indexOf(b[1]));
+    const h = hist.find(x=>x.race===e.race);
+    let res = "";
+    if (e.result){ const hon = ms.find(([,m])=>m==="◎"); const p = hon ? e.result.indexOf(+hon[0])+1 : 0;
+      res = `<p style="margin:4px 0"><b>結果</b>　${e.result.map((n,i)=>`${i+1}着 ${n} ${e.names[n]||""}`).join("／")}${hon?`　→ ◎は${p?`<b class="kb-hit">${p}着</b>`:"4着以下"}`:""}</p>`; }
+    return `<div class="kb-panel" style="margin-bottom:8px"><div class="kb-row" style="justify-content:space-between"><b>${e.raceName}</b><span class="kb-note">${e.date}</span></div>
+      <p style="margin:6px 0">${ms.map(([n,m])=>`<span style="white-space:nowrap;margin-right:10px"><b style="color:${markColor(m)}">${m}</b> ${n} ${e.names[n]||""}</span>`).join("")||'<span class="kb-note">印なし</span>'}</p>
+      ${e.memo?`<p style="margin:4px 0;white-space:pre-wrap">${e.memo.replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]))}</p>`:""}
+      ${res}${h?`<p style="margin:4px 0"><b>収支</b>　使った ${yen(h.cost)}／戻った ${yen(h.back)}　<b style="color:${h.back>=h.cost?"var(--turf)":"var(--red)"}">${h.back>=h.cost?"＋":"－"}${yen(Math.abs(h.back-h.cost))}</b></p>`:""}</div>`; }).join("");
+}
+function saveTcEntry(){
+  const list = loadTc(); const names = {}; H.forEach(h=>names[h.n]=h.name);
+  const e = {race:R.id, raceName:R.name, date:R.meta.split("（")[0], marks:{...tcDraft.marks}, memo:tcDraft.memo, names, result:LIVE.result||null, saved:Date.now()};
+  const i = list.findIndex(x=>x.race===R.id); if (i>=0) list[i] = e; else list.push(e);
+  const ok = saveTc(list);
+  document.getElementById("tcMsg").textContent = ok ? "保存しました" : "このブラウザでは保存できませんでした（プライベートモードなど）";
+  renderTcList();
+}
+// 結果が出ていたら、保存ずみのこのレースのページに結果を書きこむ
+(function(){ if (!LIVE.result) return; const list = loadTc(); const e = list.find(x=>x.race===R.id); if (e && !e.result){ e.result = LIVE.result; saveTc(list); } })();
+document.getElementById("tcMarks").addEventListener("click", ev=>{ const b = ev.target.closest("button"); if(!b) return; const n = +b.dataset.n;
+  const next = MARKS[(MARKS.indexOf(tcDraft.marks[n]||"")+1)%MARKS.length];
+  if (["◎","○","▲"].includes(next)) for (const k in tcDraft.marks) if (tcDraft.marks[k]===next) delete tcDraft.marks[k];
+  if (next) tcDraft.marks[n] = next; else delete tcDraft.marks[n];
+  save("tcDraft", tcDraft); document.getElementById("tcMsg").textContent = "まだ保存していません"; renderTcMarks(); });
+document.getElementById("tcMemo").addEventListener("input", e=>{ tcDraft.memo = e.target.value; save("tcDraft", tcDraft); document.getElementById("tcMsg").textContent = "まだ保存していません"; });
+document.getElementById("tcCopy").addEventListener("click", ()=>{ tcDraft.marks = {}; H.forEach(h=>{ if (h.mark) tcDraft.marks[h.n] = h.mark; }); save("tcDraft", tcDraft); renderTcMarks(); });
+document.getElementById("tcClear").addEventListener("click", ()=>{ tcDraft.marks = {}; save("tcDraft", tcDraft); renderTcMarks(); });
+document.getElementById("tcSave").addEventListener("click", saveTcEntry);
+document.getElementById("tcExport").addEventListener("click", async e=>{
+  const txt = loadTc().sort((a,b)=>a.saved-b.saved).map(x=>[`■ ${x.raceName}（${x.date}）`,
+    Object.entries(x.marks).filter(([,m])=>m).sort((a,b)=>MARKS.indexOf(a[1])-MARKS.indexOf(b[1])).map(([n,m])=>`${m}${n} ${x.names[n]||""}`).join("　"),
+    x.memo||"", x.result?`結果：${x.result.join("-")}`:""].filter(Boolean).join("\n")).join("\n\n");
+  try{ await navigator.clipboard.writeText(txt); e.target.textContent = "コピーしました"; }
+  catch(err){ const t = document.getElementById("tcMemo"); e.target.textContent = "コピーできませんでした"; console.log(txt); }
+});
+
 /* ===== 画面のつなぎ ===== */
 function showTab(t){ tab = t; save("tab", t);
   document.querySelectorAll("#tabs button").forEach(b=>b.setAttribute("aria-selected", b.dataset.tab===t));
-  ["yoso","uma","kaime","keiko"].forEach(k=>document.getElementById("tab-"+k).hidden = k!==t); }
+  ["yoso","uma","kaime","keiko","techo"].forEach(k=>document.getElementById("tab-"+k).hidden = k!==t); }
 function refresh(){ compute(); renderYoso(); renderUma(); renderPresets(); renderRecs(); renderKaime(); renderCart(); }
 
 document.getElementById("raceTitle").textContent = R.name + "（" + R.grade + "）";
@@ -743,7 +823,7 @@ document.getElementById("budget").addEventListener("input", renderPresets);
 document.getElementById("addCart").addEventListener("click", ()=>{ if (!combos().length) return; cart.push(JSON.parse(JSON.stringify(bet))); save("cart",cart); renderCart();
   document.getElementById("cart").scrollIntoView({behavior:"smooth", block:"start"}); });
 
-refresh(); renderHist(); showTab(tab);
+refresh(); renderHist(); renderKeiko(); renderTcMarks(); renderTcList(); showTab(tab);
 </script>
 
 </html>
